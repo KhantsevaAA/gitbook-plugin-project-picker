@@ -1,0 +1,28 @@
+{
+  "name": "gitbook-plugin-project-picker",
+  "version": "1.0.0",
+  "description": "GitBook Plugin: Project Picker (fork with configurable projects list)",
+  "main": "index.js",
+  "engines": {
+    "gitbook": ">=3.0.0"
+  },
+  "gitbook": {
+    "properties": {
+      "projects": {
+        "type": "array",
+        "title": "Projects list",
+        "default": []
+      },
+      "default": {
+        "type": "string",
+        "title": "Default project ID",
+        "default": ""
+      },
+      "grid-columns": {
+        "type": "number",
+        "title": "Grid columns count",
+        "default": 3
+      }
+    }
+  }
+}
