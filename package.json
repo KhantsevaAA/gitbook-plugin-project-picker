@@ -1,28 +1,39 @@
 {
   "name": "gitbook-plugin-project-picker",
-  "version": "1.0.0",
-  "description": "GitBook Plugin: Project Picker (fork with configurable projects list)",
+  "version": "0.1.0",
+  "description": "GitBook Plugin to add toolbar button with projects dropdown menu. This allows switching between different projects/documentation sets.",
   "main": "index.js",
   "engines": {
-    "gitbook": ">=3.0.0"
+    "gitbook": ">1.x.x"
   },
   "gitbook": {
     "properties": {
+      "grid-columns": {
+        "type": "number",
+        "title": "Columns count of projects grid",
+        "default": 3,
+        "min": 1,
+        "max": 10
+      },
       "projects": {
         "type": "array",
         "title": "Projects list",
+        "description": "List of projects in format: [['id', 'Display Name', '/path/'], ...]",
         "default": []
-      },
-      "default": {
-        "type": "string",
-        "title": "Default project ID",
-        "default": ""
-      },
-      "grid-columns": {
-        "type": "number",
-        "title": "Grid columns count",
-        "default": 3
       }
     }
-  }
+  },
+  "keywords": [
+    "gitbook",
+    "plugin",
+    "project",
+    "project-picker",
+    "dropdown",
+    "menu",
+    "documentation"
+  ],
+
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {}
 }

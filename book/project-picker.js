@@ -1,105 +1,72 @@
-require(['gitbook'], function(gitbook) {
-  gitbook.events.bind('start', function(e, config) {
-    var projectsConfig = config['project-picker'];
-    if (!projectsConfig) return;
+function projectPickerGrid(gitbook, elem, maxColumns, projectsData) {
+    var CurAddr = location.href.substr(gitbook.state.root.length);
+    var sharp = CurAddr.indexOf("#");
+    var CurAddrNoAnchor = (sharp == -1) ? CurAddr : CurAddr.substr(0, sharp);
     
-    var projects = projectsConfig.projects;
-    var defaultProject = projectsConfig.default;
-    var gridColumns = projectsConfig['grid-columns'] || 3;
+    var table = $("<table>");
+    var ins = 0;
+    var maxRows = Math.ceil(projectsData.length / maxColumns);
     
-    if (!projects || projects.length === 0) return;
-    
-    // Создаем HTML для модального окна выбора проекта
-    var modalHtml = '<div class="project-picker-modal">' +
-      '<div class="project-picker-modal-content">' +
-      '<div class="project-picker-header">Выберите проект</div>' +
-      '<div class="project-picker-grid" style="grid-template-columns: repeat(' + gridColumns + ', 1fr);">';
-    
-    projects.forEach(function(project) {
-      var id = project[0];
-      var name = project[1];
-      var path = project[2];
-      
-      modalHtml += '<a href="#" class="project-picker-item" data-project-id="' + id + '" data-project-path="' + path + '">' +
-        '<div class="project-picker-item-name">' + name + '</div>' +
-        '</a>';
-    });
-    
-    modalHtml += '</div></div></div>';
-    
-    // Добавляем модальное окно в DOM
-    $('body').append(modalHtml);
-    
-    // Создаем кнопку в тулбаре (как в language-picker - иконка)
-    var projectButton = '<a href="#" class="btn pull-right project-picker-button" style="padding: 0 5px;">' +
-      '<i class="fa fa-folder-open"></i>' +
-      '</a>';
-    
-    // Вставляем кнопку после language-picker, если он есть
-    var langPickerButton = $('.language-picker-button');
-    if (langPickerButton.length) {
-      langPickerButton.after(projectButton);
-    } else {
-      $('.book-header .btn-group').append(projectButton);
+    for (var i = 0; i < maxRows; i++) {
+        var r = $("<tr>");
+        for (var ii = 0; (i * maxColumns + ii < projectsData.length) && (ii < maxColumns); ii++) {
+            var c = $("<td>");
+            var l = $("<a>");
+            
+            // Формируем путь: текущий язык + путь проекта
+            var currentLang = gitbook.state.innerLanguage || 'ru';
+            var projectPath = projectsData[ins][2];
+            var newPath = '/' + currentLang + projectPath;
+            
+            // Сохраняем текущую страницу
+            if (CurAddrNoAnchor && CurAddrNoAnchor !== '/') {
+                var currentPage = CurAddrNoAnchor.split('/').pop();
+                if (currentPage && currentPage !== '') {
+                    newPath = newPath + currentPage;
+                }
+            }
+            
+            l.attr("href", gitbook.state.bookRoot.replace(/([^\/])$/, "$1/") + currentLang + projectPath);
+            l.attr("data-project", projectsData[ins][0]);
+            l.html(projectsData[ins][1]);
+            c.append(l);
+            r.append(c);
+            ins++;
+        }
+        table.append(r);
     }
-    
-    // Определяем текущий проект из URL
-    var currentPath = window.location.pathname;
-    var currentProjectId = null;
-    var currentProjectPath = null;
-    
-    projects.forEach(function(project) {
-      var id = project[0];
-      var path = project[2];
-      if (currentPath.includes(path)) {
-        currentProjectId = id;
-        currentProjectPath = path;
-      }
+    elem.append(table);
+}
+
+require(["gitbook", "jQuery"], function(gitbook, $) {
+    gitbook.events.bind("start", function(e, config) {
+        var opts = config["project-picker"];
+        
+        if (!opts || !opts.projects || opts.projects.length === 0) return;
+        
+        // Создаем кнопку через стандартный API тулбара
+        gitbook.toolbar.createButton({
+            icon: "fa fa-folder-open",
+            label: "Select project",
+            className: "project-picker",
+            dropdown: []
+        });
+        
+        $(function() {
+            var DDMenu_selector = ".project-picker .dropdown-menu";
+            
+            // При клике на кнопку заполняем выпадающее меню
+            $(document).one("click", ".project-picker .btn", function(e) {
+                var maxColumns = opts["grid-columns"] || 3;
+                var projects = opts.projects;
+                
+                var elem = $(DDMenu_selector);
+                elem.empty(); // Очищаем перед заполнением
+                elem.addClass("project-picker-grid");
+                
+                projectPickerGrid(gitbook, elem, maxColumns, projects);
+                elem.trigger("parsedContent");
+            });
+        });
     });
-    
-    // Если проект не определен, но есть default
-    if (!currentProjectId && defaultProject) {
-      var defaultProjectData = projects.find(function(p) { return p[0] === defaultProject; });
-      if (defaultProjectData) {
-        currentProjectPath = defaultProjectData[2];
-      }
-    }
-    
-    // Обработчик клика по кнопке
-    $('.project-picker-button').on('click', function(e) {
-      e.preventDefault();
-      $('.project-picker-modal').show();
-    });
-    
-    // Обработчик выбора проекта
-    $('.project-picker-item').on('click', function(e) {
-      e.preventDefault();
-      var projectPath = $(this).data('project-path');
-      var currentLang = currentPath.split('/')[1] || 'ru'; // Определяем текущий язык
-      
-      // Формируем новый путь: /{lang}/{projectPath}
-      var newPath = '/' + currentLang + projectPath;
-      
-      // Сохраняем текущую страницу внутри проекта
-      var currentPage = currentPath.substring(currentPath.lastIndexOf('/') + 1);
-      if (currentPage && !currentPage.includes('.html')) {
-        currentPage = currentPage + '.html';
-      }
-      
-      // Если страница существует в новом проекте, переходим на неё
-      if (currentPage && currentPage !== 'index.html') {
-        newPath = newPath + currentPage;
-      }
-      
-      window.location.href = newPath;
-    });
-    
-    // Закрытие модального окна при клике вне его
-    $(document).on('click', function(e) {
-      if (!$(e.target).closest('.project-picker-modal-content').length && 
-          !$(e.target).closest('.project-picker-button').length) {
-        $('.project-picker-modal').hide();
-      }
-    });
-  });
 });
